@@ -1,1 +1,2 @@
 Initial init of RAG workspace - Mon Nov 24 04:45:13 CET 2025
+Added PDF ingestion via Docling - Tue Nov 25 04:45:13 CET 2025
