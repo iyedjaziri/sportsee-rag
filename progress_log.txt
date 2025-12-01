@@ -1,3 +1,4 @@
 Initial init of RAG workspace - Mon Nov 24 04:45:13 CET 2025
 Added PDF ingestion via Docling - Tue Nov 25 04:45:13 CET 2025
 Integrated Mistral API for embeddings - Fri Nov 28 04:45:13 CET 2025
+Refactored SQL Agent logic - Mon Dec  1 04:45:13 CET 2025
