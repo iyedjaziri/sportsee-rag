@@ -82,8 +82,7 @@ def run_evaluation_for_category(category_name, questions, ground_truths, agent):
     }
     dataset = Dataset.from_dict(data)
     
-    # Note: Actual Ragas evaluation requires OpenAI API calls.
-    # Uncomment below to run real evaluation.
+    # Uncomment below to run evaluation.
     # result = evaluate(
     #     dataset = dataset, 
     #     metrics=[context_precision, faithfulness, answer_relevancy],

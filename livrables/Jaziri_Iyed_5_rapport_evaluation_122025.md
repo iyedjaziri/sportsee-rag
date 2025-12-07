@@ -2,22 +2,23 @@
 
 **Auteur** : Iyed Jaziri
 **Date** : Décembre 2025
-**Projet** : SportSee - Assistant Intelligent Basket
+**Projet** : SportSee : Assistant Intelligent Basket
 
 ---
 
 ## 1. Introduction
-Ce rapport documente la mise en place et l'évaluation du système RAG (Retrieval-Augmented Generation) développé pour SportSee. L'objectif était de créer un assistant capable de répondre à des questions sur les joueurs et les règles du basket, en s'appuyant sur des données structurées (SQL) et non structurées (Documents).
+Ce rapport documente la mise en place et l'évaluation du système RAG (Retrieval-Augmented Generation) développé pour SportSee. 
+L'objectif était de créer un assistant capable de répondre à des questions sur les joueurs et les règles du basket, en s'appuyant sur des données structurées (SQL) et non structurées (Documents).
 
 ## 2. Méthodologie
 
 ### 2.1 Architecture Hybride
-Nous avons opté pour une architecture **Hybride RAG** pour répondre à la dualité des données :
-*   **SQL Agent** : Pour les questions statistiques précises (ex: "Moyenne de points de Curry"). Un retriever vectoriel classique échoue souvent sur les agrégations.
-*   **Vector Store (Chroma)** : Pour les règles et règlements. La recherche sémantique est ici plus adaptée que le SQL.
+Nous avons opté pour une architecture **Hybride de RAG** pour répondre à la dualité des données :
+*   **SQL Agent** : Pour les questions statistiques précises (ex: "Moyenne de points de Curry"). Un retriever vectoriel classique échoue sur les agrégations.
+*   **Vector Store (Chroma)** : Pour les règles. La recherche sémantique est ici plus adaptée que le SQL.
 
 ### 2.2 Outils d'Évaluation et de Monitoring
-*   **Ragas** : Framework standard pour l'évaluation des pipelines RAG. Nous utilisons les métriques *Faithfulness* (Fidélité), *Answer Relevancy* (Pertinence) et *Context Precision*.
+*   **Ragas** : Framework standard pour l'évaluation des pipelines RAG. Nous utilisons les métriques *Faithfulness* (Fidélité), *Answer Relevancy* (Pertinence) et *Context Precision* (Précision du contexte).
 *   **Pydantic Logfire** : Pour l'observabilité en production. Permet de tracer chaque étape (Retriever -> LLM) et de valider les schémas de données.
 
 ## 3. Résultats de l'Évaluation
@@ -57,4 +58,4 @@ Pour améliorer l'infrastructure :
 3.  **Cache Sémantique** : Mettre en cache les réponses aux questions fréquentes pour réduire les coûts et la latence.
 
 ## 7. Conclusion
-Le système RAG SportSee est opérationnel et répond aux exigences de qualité pour une mise en production "Bêta". Les mécanismes de monitoring (Logfire) et d'évaluation continue (Ragas) sont en place pour garantir sa fiabilité dans le temps.
+Le système RAG SportSee est opérationnel et répond aux exigences de qualité pour une mise en production "Bêta". Les mécanismes de monitoring (Logfire) et d'évaluation continue (Ragas) sont déployés pour garantir sa fiabilité dans le temps.
