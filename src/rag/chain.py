@@ -1,5 +1,5 @@
-from langchain.agents import create_openai_tools_agent, AgentExecutor
-from langchain_openai import ChatOpenAI
+from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain_mistralai import ChatMistralAI
 from langchain.tools.retriever import create_retriever_tool
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from src.core.config import settings
@@ -10,20 +10,20 @@ def get_rag_agent():
     """
     Creates a Hybrid RAG Agent (SQL + Vector).
     """
-    llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=settings.OPENAI_API_KEY)
+    # Use Mistral Large or Small depending on availability
+    llm = ChatMistralAI(
+        model="mistral-large-latest", 
+        temperature=0, 
+        api_key=settings.MISTRAL_API_KEY
+    )
     
     tools = []
     
-    # 1. SQL Tool (wrapped as a tool for the main agent)
-    # The SQL Agent is itself an agent, so we might need to wrap it or just expose the DB tool directly.
-    # For simplicity in this hybrid setup, let's use the SQLDatabaseToolkit tools directly if possible,
-    # or wrap the sql agent executor as a tool.
-    # A cleaner way for Hybrid is to give the main agent a "StatsQuery" tool.
+    # 1. SQL Tool
+    sql_agent = get_sql_tool(llm) # Pass mistral llm
     
+    # Wrap SQL Agent as a Tool
     from langchain.tools import Tool
-    
-    sql_agent = get_sql_tool(llm)
-    
     sql_tool = Tool(
         name="NBA_Stats_DB",
         func=sql_agent.invoke,
@@ -48,7 +48,14 @@ def get_rag_agent():
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ])
     
-    agent = create_openai_tools_agent(llm, tools, prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    # Use generic tool calling agent which works with Mistral
+    agent = create_tool_calling_agent(llm, tools, prompt)
+    agent_executor = AgentExecutor(
+        agent=agent, 
+        tools=tools, 
+        verbose=True, 
+        return_intermediate_steps=True,
+        handle_parsing_errors=True
+    )
     
     return agent_executor

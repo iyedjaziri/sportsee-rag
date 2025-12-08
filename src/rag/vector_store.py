@@ -7,7 +7,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from src.core.config import settings
 from src.core.logging import logger
 
-VECTOR_DB_PATH = "data/faiss_index"
+VECTOR_DB_PATH = "vector_db"
 
 def create_vector_db(data_path: str = "inputs"):
     """
@@ -33,7 +33,14 @@ def create_vector_db(data_path: str = "inputs"):
     texts = text_splitter.split_documents(documents)
     
     logger.info(f"Created {len(texts)} chunks. Embedding and indexing...")
-    embeddings = OpenAIEmbeddings(api_key=settings.OPENAI_API_KEY)
+from langchain_mistralai import MistralAIEmbeddings
+
+# ... (imports)
+
+def create_vector_db(data_path: str = "inputs"):
+    # ... (code)
+    logger.info(f"Created {len(texts)} chunks. Embedding and indexing...")
+    embeddings = MistralAIEmbeddings(api_key=settings.MISTRAL_API_KEY, model="mistral-embed")
     vectorstore = FAISS.from_documents(texts, embeddings)
     
     vectorstore.save_local(VECTOR_DB_PATH)
@@ -44,7 +51,7 @@ def get_vector_store():
     """
     Loads the FAISS index from disk.
     """
-    embeddings = OpenAIEmbeddings(api_key=settings.OPENAI_API_KEY)
+    embeddings = MistralAIEmbeddings(api_key=settings.MISTRAL_API_KEY, model="mistral-embed")
     if os.path.exists(VECTOR_DB_PATH):
         return FAISS.load_local(VECTOR_DB_PATH, embeddings, allow_dangerous_deserialization=True)
     else:

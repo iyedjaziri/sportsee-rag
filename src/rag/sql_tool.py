@@ -1,6 +1,6 @@
 from langchain.utilities import SQLDatabase
 from langchain_community.agent_toolkits import create_sql_agent
-from langchain_openai import ChatOpenAI
+from langchain_mistralai import ChatMistralAI
 from langchain.agents.agent_types import AgentType
 from src.core.config import settings
 
@@ -11,10 +11,10 @@ def get_sql_tool(llm=None):
     db = SQLDatabase.from_uri(settings.DATABASE_URL)
     
     if llm is None:
-        llm = ChatOpenAI(
-            model="gpt-3.5-turbo", # Or gpt-4o if available/configured
+        llm = ChatMistralAI(
+            model="mistral-large-latest", # Use capable model for SQL generation
             temperature=0,
-            api_key=settings.OPENAI_API_KEY
+            api_key=settings.MISTRAL_API_KEY
         )
 
     # We can return the agent executor itself as a tool-like object
@@ -25,7 +25,7 @@ def get_sql_tool(llm=None):
         db=db,
         agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
         verbose=True,
-        handle_parsing_errors=True
+        agent_executor_kwargs={"handle_parsing_errors": True}
     )
     
     return agent_executor

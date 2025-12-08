@@ -1,122 +1,114 @@
+
 import os
 import pandas as pd
-from ragas import evaluate
-from ragas.metrics import (
-    context_precision,
-    faithfulness,
-    answer_relevancy,
-)
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from src.rag.chain import get_rag_agent
-from src.core.config import settings
-from src.core.logging import logger
 from datasets import Dataset
-import logging
+from ragas import evaluate
+from ragas.metrics import faithfulness, answer_relevancy, context_precision
+from ragas.llms import LangchainLLMWrapper
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from langchain_mistralai import ChatMistralAI, MistralAIEmbeddings
+from src.core.config import settings
+from src.rag.chain import get_rag_agent
 
-# Configure structured logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# 1. Setup Mistral for Ragas
+mistral_llm = ChatMistralAI(
+    model="mistral-large-latest",
+    api_key=settings.MISTRAL_API_KEY,
+    temperature=0
+)
+mistral_embeddings = MistralAIEmbeddings(
+    model="mistral-embed",
+    api_key=settings.MISTRAL_API_KEY
+)
 
-def get_test_cases():
-    """
-    Returns a dictionary of test cases categorized by complexity.
-    """
-    return {
-        "SIMPLE": {
-            "questions": [
-                "Who has the highest PPG in the dataset?",
-                "What is a 3-second violation?",
-            ],
-            "ground_truths": [
-                ["Shai Gilgeous-Alexander has the highest PPG."],
-                ["A player shall not remain for more than three seconds in the restricted area..."],
-            ]
-        },
-        "COMPLEX": {
-            "questions": [
-                "Compare Shai Gilgeous-Alexander's stats with Anthony Edwards.",
-                "List all players with more than 20 PPG and 5 APG.",
-            ],
-            "ground_truths": [
-                ["Shai has higher PPG and efficiency than Anthony Edwards..."],
-                ["Luka Doncic, Shai Gilgeous-Alexander, Trae Young..."],
-            ]
-        },
-        "NOISY": {
-            "questions": [
-                "Who is the best player in terms of points per game? (typo: pnts)",
-                "Tell me about the rule for 3 secs in the paint.",
-            ],
-            "ground_truths": [
-                ["Shai Gilgeous-Alexander has the highest PPG."],
-                ["A player shall not remain for more than three seconds in the restricted area..."],
-            ]
-        }
+ragas_llm = LangchainLLMWrapper(mistral_llm)
+ragas_embeddings = LangchainEmbeddingsWrapper(mistral_embeddings)
+
+# Ragas expects specific metric configuration if not using OpenAI
+# We inject the llm/embeddings into the metrics or the evaluate function (depending on Ragas version, newer versions use `llm=` in evaluate)
+
+def evaluate_rag():
+    print("Initializing RAG Agent...")
+    agent = get_rag_agent()
+    
+    # Define Evaluation Dataset (Simple & Complex)
+    test_questions = [
+        # Simple RAG (Vector)
+        "What are the rules regarding goaltending?",
+        # Simple SQL
+        "How many points did Lebron James average in 2023?",
+        # Complex Hybrid
+        "Compare the average points of Curry with the rule about 3-point lines."
+    ]
+    
+    ground_truths = [
+        ["Goaltending allows the defense to not touch the ball while it's on downward flight."],
+        ["LeBron James averaged X points."],
+        ["Curry averaged Y. The 3-point line is at Z distance."]
+    ]
+    
+    results = {
+        "question": [],
+        "answer": [],
+        "contexts": [],
+        "ground_truth": []
     }
-
-def run_evaluation_for_category(category_name, questions, ground_truths, agent):
-    """
-    Runs evaluation for a specific category of questions.
-    """
-    logger.info(f"--- Starting Evaluation for Category: {category_name} ---")
     
-    answers = []
-    contexts = []
-    
-    for q in questions:
+    print("Running Generation...")
+    for i, q in enumerate(test_questions):
+        print(f"Resolving: {q}")
         try:
-            logger.info(f"Processing query: {q}")
             response = agent.invoke({"input": q})
-            answers.append(response["output"])
-            # Placeholder for context retrieval
-            contexts.append(["Context placeholder - Agent used tools."]) 
+            answer = response["output"]
         except Exception as e:
-            logger.error(f"Error processing {q}: {e}")
-            answers.append("Error")
-            contexts.append([])
+            print(f"Error resolving query '{q}': {e}")
+            answer = "Error generating answer."
+            response = {} # Empty response to trigger no context
 
-    data = {
-        "question": questions,
-        "answer": answers,
-        "contexts": contexts,
-        "ground_truth": ground_truths
-    }
-    dataset = Dataset.from_dict(data)
-    
-    # Note: Actual Ragas evaluation requires OpenAI API calls.
-    # Uncomment below to run real evaluation.
-    # result = evaluate(
-    #     dataset = dataset, 
-    #     metrics=[context_precision, faithfulness, answer_relevancy],
-    # )
-    # return result
-    
-    logger.info(f"Completed generation for {category_name}. (Metrics calculation skipped in demo)")
-    return dataset
-
-def run_full_evaluation():
-    """
-    Main function to run the full evaluation pipeline.
-    """
-    logger.info("Initializing RAG Agent...")
-    try:
-        agent = get_rag_agent()
-    except Exception as e:
-        logger.error(f"Failed to initialize agent: {e}")
-        return
-
-    test_cases = get_test_cases()
-    
-    results = {}
-    
-    for category, data in test_cases.items():
-        results[category] = run_evaluation_for_category(
-            category, 
-            data["questions"], 
-            data["ground_truths"], 
-            agent
-        )
         
-    logger.info("All evaluations completed successfully.")
+        # Extract contexts from intermediate steps
+        contexts = []
+        if "intermediate_steps" in response:
+            for params, tool_output in response["intermediate_steps"]:
+                # tool_output is usually the tool result (string or list of Docs)
+                if hasattr(tool_output, 'content'): # LangChain Document
+                    contexts.append(tool_output.content)
+                elif isinstance(tool_output, str):
+                    contexts.append(tool_output)
+                elif isinstance(tool_output, list): # List of Documents
+                     for doc in tool_output:
+                         if hasattr(doc, 'page_content'):
+                             contexts.append(doc.page_content)
+                         else:
+                             contexts.append(str(doc))
+        
+        if not contexts:
+            contexts = ["No context retrieved"] 
+        
+        results["question"].append(q)
+        results["answer"].append(answer)
+        results["contexts"].append(contexts)
+        results["ground_truth"].append(ground_truths[i])
+
+    dataset = Dataset.from_dict(results)
+    
+    print("Running Evaluation with Ragas...")
+    metrics = [faithfulness, answer_relevancy, context_precision]
+    
+    # Configure metrics with Mistral (if supported by installed Ragas version, otherwise defaults to OpenAI and might fail)
+    # For newer Ragas, pass llm to evaluate()
+    
+    scores = evaluate(
+        dataset,
+        metrics=metrics,
+        llm=ragas_llm,
+        embeddings=ragas_embeddings
+    )
+    
+    print("Evaluation Scores:", scores)
+    df = scores.to_pandas()
+    df.to_csv("evaluation_results.csv", index=False)
+    print("Results saved to evaluation_results.csv")
 
 if __name__ == "__main__":
-    run_full_evaluation()
+    evaluate_rag()
