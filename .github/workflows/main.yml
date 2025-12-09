@@ -39,6 +39,7 @@ jobs:
         
     - name: Run Tests
       run: |
+        export PYTHONPATH=$PYTHONPATH:.
         pytest --cov=src tests/
         
   build:
