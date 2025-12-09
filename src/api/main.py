@@ -11,8 +11,7 @@ setup_logging()
 # Configure Logfire
 if settings.LOGFIRE_TOKEN:
     logfire.configure(token=settings.LOGFIRE_TOKEN)
-    logfire.configure(token=settings.LOGFIRE_TOKEN)
-    # logfire.instrument_pydantic() # Auto-instrumented or not available in this version
+    # logfire.instrument_pydantic() 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -25,6 +24,7 @@ app = FastAPI(
 # Instrument FastAPI
 if settings.LOGFIRE_TOKEN:
     logfire.instrument_fastapi(app)
+    # pass
 
 # CORS
 app.add_middleware(

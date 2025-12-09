@@ -21,7 +21,6 @@ def run_drift_analysis(current_data_path: str, reference_data_path: str, output_
         reference_df = pd.read_excel(reference_data_path, header=1)
         
         # Simple preprocessing to ensure columns match
-        # (In a real scenario, we'd share the schema logic from ingestion)
         
         report = Report(metrics=[
             DataDriftPreset(),
@@ -36,7 +35,4 @@ def run_drift_analysis(current_data_path: str, reference_data_path: str, output_
         logger.exception(f"Error during drift analysis: {e}")
 
 if __name__ == "__main__":
-    # Example usage
-    # We might not have 'reference' data yet, so we can simulate by splitting the current file
-    # or just checking if files exist.
     pass

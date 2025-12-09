@@ -1,17 +1,19 @@
 from langchain.agents import create_tool_calling_agent, AgentExecutor
-from langchain_mistralai import ChatMistralAI
+from src.rag.mistral_wrapper import SafeChatMistralAI
 from langchain.tools.retriever import create_retriever_tool
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from src.core.config import settings
 from src.rag.sql_tool import get_sql_tool
 from src.rag.vector_store import get_retriever
 
+import logfire
+
 def get_rag_agent():
     """
     Creates a Hybrid RAG Agent (SQL + Vector).
     """
     # Use Mistral Large or Small depending on availability
-    llm = ChatMistralAI(
+    llm = SafeChatMistralAI(
         model="mistral-large-latest", 
         temperature=0, 
         api_key=settings.MISTRAL_API_KEY

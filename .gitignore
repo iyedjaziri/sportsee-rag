@@ -23,7 +23,7 @@ data/sportsee.db
 data/vector_db/
 # Exclude deliverables and presentation
 livrables/
-presentation/
+# presentation/
 presentation_ragas_logfire.md
 rapport_mise_en_place.md
 fake_commits.sh

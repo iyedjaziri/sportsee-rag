@@ -1,9 +1,12 @@
 from langchain.utilities import SQLDatabase
 from langchain_community.agent_toolkits import create_sql_agent
-from langchain_mistralai import ChatMistralAI
+from src.rag.mistral_wrapper import SafeChatMistralAI
 from langchain.agents.agent_types import AgentType
 from src.core.config import settings
 
+import logfire
+
+@logfire.instrument("create_sql_agent")
 def get_sql_tool(llm=None):
     """
     Creates a LangChain SQL Agent tool.
@@ -11,7 +14,7 @@ def get_sql_tool(llm=None):
     db = SQLDatabase.from_uri(settings.DATABASE_URL)
     
     if llm is None:
-        llm = ChatMistralAI(
+        llm = SafeChatMistralAI(
             model="mistral-large-latest", # Use capable model for SQL generation
             temperature=0,
             api_key=settings.MISTRAL_API_KEY
